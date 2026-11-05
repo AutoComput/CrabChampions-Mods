@@ -38,10 +38,21 @@ if (Test-Path $stagedConfig) {
 
 $zipPath = Join-Path $repoRoot "dist\$modName-v$version.zip"
 if (Test-Path $zipPath) { Remove-Item $zipPath }
-Compress-Archive -Path $stagedMod -DestinationPath $zipPath
+# Compress-Archive in Windows PowerShell 5.1 writes backslash entry names, which some
+# extractors and mod managers turn into literal file names. Write "/" entries instead.
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$zipStream = [System.IO.Compression.ZipFile]::Open($zipPath, [System.IO.Compression.ZipArchiveMode]::Create)
+try {
+    Get-ChildItem $stagedMod -Recurse -File | ForEach-Object {
+        $entryName = $modName + "/" + $_.FullName.Substring($stagedMod.Length + 1).Replace("\", "/")
+        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zipStream, $_.FullName, $entryName, [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+    }
+} finally {
+    $zipStream.Dispose()
+}
 Remove-Item $stagingRoot -Recurse -Force
 
 Write-Log "OK" "Built $zipPath"
-Add-Type -AssemblyName System.IO.Compression.FileSystem
 $zip = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
 try { $zip.Entries | ForEach-Object { Write-Host "  $($_.FullName)" } } finally { $zip.Dispose() }
