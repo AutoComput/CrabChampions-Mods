@@ -30,6 +30,9 @@ Copy-Item (Join-Path $repoRoot "README.md") $stagedMod
 Copy-Item (Join-Path $repoRoot "CHANGELOG.md") $stagedMod
 Copy-Item (Join-Path $repoRoot "LICENSE") $stagedMod
 
+# Never ship dev log files.
+Get-ChildItem $stagedMod -Recurse -File -Filter "*.log" | ForEach-Object { Remove-Item $_.FullName; Write-Log "WARN" "Excluded $($_.Name) from the release" }
+
 # Never ship a personal config: releases must not overwrite players' settings.
 $stagedConfig = Join-Path $stagedMod "scripts\config.lua"
 if (Test-Path $stagedConfig) {

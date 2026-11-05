@@ -1,5 +1,10 @@
 -- CancelLockedSlots
 -- Crab Champions UE4SS Lua mod.
+-- Copyright (C) 2026 AutoComput
+-- SPDX-License-Identifier: GPL-3.0-or-later
+-- This program is free software: you can redistribute it and/or modify it under
+-- the terms of the GNU General Public License, version 3 or (at your option) any
+-- later version. It comes WITHOUT ANY WARRANTY. See LICENSE for details.
 --
 -- Keep Locked Slots selected in the difficulty menu so the game itself counts
 -- all 8 red modifiers (real Prismatic rank, loot luck and victory rewards),
@@ -8,6 +13,10 @@
 --
 -- Settings: copy config.example.lua to config.lua in this folder and edit it.
 -- config.lua is never included in release zips, so updates keep your settings.
+--
+-- Log: CancelLockedSlots.log in this mod's folder. The previous session is kept
+-- as CancelLockedSlots.previous.log, so a crash session survives a relaunch.
+-- Bug reports: run tools\CollectDiagnostics.bat.
 --
 -- Multiplayer: only the host needs this mod. The host's game owns every player's CrabPS.
 --
@@ -82,10 +91,67 @@ local cachedGameState = nil
 -- Logging
 ------------------------------------------------------------------------------
 
+-- Mod-specific log file, opened by openLogFile(). Flushed on every line so a crash keeps it.
+local logFileState = { handle = nil }
+
+local function writeToLogFile(line)
+    local handle = logFileState.handle
+    if handle == nil then return end
+    local ok, problem = pcall(function()
+        handle:write(line, "\n")
+        handle:flush()
+    end)
+    if not ok then
+        logFileState.handle = nil
+        print(string.format("[%s] [WARN] Log file write failed, file logging stopped: %s\n", modName, tostring(problem)))
+    end
+end
+
 local function logMessage(level, message)
     local minLevel = logLevels[config.minLogLevel] or logLevels.INFO
     if (logLevels[level] or logLevels.INFO) < minLevel then return end
     print(string.format("[%s] [%s] %s\n", modName, level, message))
+    writeToLogFile(string.format("[%s] [%s] %s", os.date("%Y-%m-%d %H:%M:%S"), level, message))
+end
+
+-- Returns this mod's folder (the parent of scripts) from this file's own path, or nil.
+local function getModDirectory()
+    if debug == nil or debug.getinfo == nil then return nil end
+    local info = debug.getinfo(1, "S")
+    local source = info and info.source or ""
+    if source:sub(1, 1) ~= "@" then return nil end
+    local scriptsDirectory = source:sub(2):match("^(.*)[/\\][^/\\]+$")
+    return scriptsDirectory and scriptsDirectory:match("^(.*)[/\\][^/\\]+$") or nil
+end
+
+-- Keeps the previous session's log (the crash session, after a crash) and starts a new one.
+-- Paths are never written to the log, since they contain the Windows username.
+local function openLogFile()
+    local modDirectory = getModDirectory()
+    if modDirectory == nil then
+        logMessage("WARN", "Could not determine the mod folder, logging to UE4SS.log only")
+        return
+    end
+    local currentPath = modDirectory .. "/" .. modName .. ".log"
+    local previousPath = modDirectory .. "/" .. modName .. ".previous.log"
+    os.remove(previousPath)
+    local isRotated = os.rename(currentPath, previousPath)
+
+    -- A failed rename with the file still present means an earlier session in this
+    -- process still has it open (a mod reload). Append instead of wiping it.
+    local existingHandle = (not isRotated) and io.open(currentPath, "r") or nil
+    if existingHandle then existingHandle:close() end
+    local openMode = existingHandle and "a" or "w"
+
+    local handle, problem = io.open(currentPath, openMode)
+    if handle == nil then
+        logMessage("WARN", "Could not open the mod log file, logging to UE4SS.log only: " .. tostring(problem))
+        return
+    end
+    logFileState.handle = handle
+    writeToLogFile(string.format("==== %s v%s session started %s (%s)%s ====",
+        modName, modVersion, os.date("%Y-%m-%d %H:%M:%S"), _VERSION,
+        openMode == "a" and ", appended after a mod reload" or ""))
 end
 
 -- Logs a repeated message at most once per interval and reports how many were suppressed.
@@ -385,6 +451,11 @@ local function runGuardedOnGameThread(label, callback)
             handleCallbackError(label, errorMessage)
         end
     end)
+end
+
+local logOk, logProblem = pcall(openLogFile)
+if not logOk then
+    print(string.format("[%s] [WARN] Mod log file unavailable, logging to UE4SS.log only: %s\n", modName, tostring(logProblem)))
 end
 
 local initOk, initResult, initProblem = pcall(initialize)

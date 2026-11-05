@@ -18,8 +18,6 @@ A Crab Champions mod that lets you keep **Locked Slots** selected in the difficu
 1. At the difficulty totem, turn on all red modifiers, **including Locked Slots**. The menu shows Prismatic.
 2. Start the run. On island 1 the mod restores everyone's slot counts.
 
-Flex modifiers such as Manual Collection are untouched and work as normal.
-
 ## Multiplayer
 
 Only the **host** needs the mod. The host's game owns every player's inventory, so all players get their slots restored. Co-op has not been fully tested yet; reports are welcome.
@@ -37,7 +35,7 @@ Copy `scripts\config.example.lua` to `scripts\config.lua` and edit it:
 
 ## Checking it works
 
-Open `ue4ss\UE4SS.log` and look for:
+Open `Mods\CancelLockedSlots\CancelLockedSlots.log` (or `ue4ss\UE4SS.log`) and look for:
 
 ```
 [CancelLockedSlots] [INFO] v1.0.0 settings=defaults cancelLockedSlots=true LockedSlots=LockedSlots(4) slotDefaults=24/12/12/24
@@ -60,6 +58,19 @@ Delete the `Mods\CancelLockedSlots` folder.
 
 Track the mod on Nexus Mods, or watch this repo's releases on GitHub, to be notified of new versions. Your installed version is shown in `UE4SS.log` as `[OK] Loaded vX.Y.Z`.
 
+## Reporting a problem
+
+1. If the game crashed, relaunch it once and close it. The mod keeps the crashed session's log as `CancelLockedSlots.previous.log`.
+2. Double-click `Mods\CancelLockedSlots\tools\CollectDiagnostics.bat`.
+3. Attach the zip it saves to your Desktop (`CancelLockedSlots-diagnostics-<date>.zip`) to your bug report, with a short description of what happened.
+
+The zip contains the mod's logs, `UE4SS.log`, UE4SS settings, your installed mod list, the game's Steam build id and your Windows version. Your Windows username is replaced with `<user>`. Steam player names in the mod log are kept, since they show which player an entry is about. Crash dumps are only included if you answer yes when asked, because they contain a snapshot of game memory.
+
+## Logs
+
+The mod writes `Mods\CancelLockedSlots\CancelLockedSlots.log` every session, and keeps the session before as `CancelLockedSlots.previous.log`. The same lines also appear in `ue4ss\UE4SS.log`.
+
 ## License
 
-MIT. See `LICENSE`.
+Copyright (C) 2026 AutoComput. Licensed under the GNU General Public License v3.0 or later (`GPL-3.0-or-later`). See `LICENSE`.
+
