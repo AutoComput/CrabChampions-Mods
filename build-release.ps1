@@ -28,6 +28,7 @@ New-Item -ItemType Directory -Path $stagedMod -Force | Out-Null
 Copy-Item (Join-Path $modFolder "*") $stagedMod -Recurse
 Copy-Item (Join-Path $repoRoot "README.md") $stagedMod
 Copy-Item (Join-Path $repoRoot "CHANGELOG.md") $stagedMod
+Copy-Item (Join-Path $repoRoot "LICENSE") $stagedMod
 
 # Never ship a personal config: releases must not overwrite players' settings.
 $stagedConfig = Join-Path $stagedMod "scripts\config.lua"

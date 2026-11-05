@@ -55,3 +55,11 @@ Extract the new release over the old folder. Your `config.lua` is kept.
 ## Uninstall
 
 Delete the `Mods\CancelLockedSlots` folder.
+
+## Updates
+
+Track the mod on Nexus Mods, or watch this repo's releases on GitHub, to be notified of new versions. Your installed version is shown in `UE4SS.log` as `[OK] Loaded vX.Y.Z`.
+
+## License
+
+MIT. See `LICENSE`.
