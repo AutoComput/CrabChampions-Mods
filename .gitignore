@@ -1,2 +1,5 @@
 dist/
-CancelLockedSlots/scripts/config.luaCancelLockedSlots/*.log
+
+# Players' personal settings and session logs, in any mod folder.
+*/scripts/config.lua
+*/*.log
