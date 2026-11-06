@@ -10,6 +10,10 @@
 
 Each mod folder has its own `README.md` (install, settings, troubleshooting) and `CHANGELOG.md`.
 
+### CancelLockedSlots
+
+![Locked Slots stays selected for Prismatic rank while the inventory keeps its full slot counts](https://raw.githubusercontent.com/AutoComput/CrabChampions-Mods/main/docs/clear-locked-slots.gif)
+
 ## Requirements
 
 - Crab Champions (Steam)

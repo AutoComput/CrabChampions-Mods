@@ -2,6 +2,8 @@
 
 A Crab Champions mod that lets you keep **Locked Slots** selected in the difficulty menu, so the game counts all 8 red modifiers and gives you real **Prismatic** rank, loot luck and victory rewards, while cancelling Locked Slots' effect. Your inventory keeps its normal slot counts (24 weapon mods, 12 ability mods, 12 melee mods, 24 perks).
 
+![Locked Slots stays selected for Prismatic rank while the inventory keeps its full slot counts](https://raw.githubusercontent.com/AutoComput/CrabChampions-Mods/main/docs/clear-locked-slots.gif)
+
 ## Requirements
 
 - Crab Champions (Steam)
