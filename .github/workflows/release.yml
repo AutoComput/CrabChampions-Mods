@@ -23,7 +23,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Resolve mod and version
         id: resolve
@@ -105,12 +105,19 @@ jobs:
               $body = "See CHANGELOG.md."
           }
 
-          @"
+          $notes = @"
           $body
 
           **Install:** extract into ``Crab Champions\CrabChampions\Binaries\Win64\ue4ss\Mods\``.
           See the [$mod README](https://github.com/$env:GITHUB_REPOSITORY/blob/main/$mod/README.md).
-          "@ | Out-File release-notes.md -Encoding utf8
+          "@
+
+          # Out-File -Encoding utf8 writes a BOM on Windows PowerShell 5.1, which
+          # renders as a stray character above the first line of the release notes.
+          [System.IO.File]::WriteAllText(
+              (Join-Path $PWD "release-notes.md"),
+              $notes,
+              (New-Object System.Text.UTF8Encoding($false)))
 
           Get-Content release-notes.md
 

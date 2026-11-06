@@ -69,6 +69,20 @@ Actions tab to build a zip as a downloadable artifact without creating a release
 
 Open an issue and say which mod it's about. Most mod folders include `tools\CollectDiagnostics.bat`, which bundles the relevant logs — attach the zip it produces.
 
+## Disclaimer
+
+This is an unofficial, fan-made modification. It is not affiliated with,
+endorsed by, sponsored by, or associated with Crab Champions or its creator,
+Noisestorm.
+
+Crab Champions, and all related names, artwork, assets and trademarks, are the
+property of their respective owners. All rights reserved by those owners. This
+mod contains no game assets; it only changes behaviour at runtime on the
+player's own machine.
+
+This mod is provided free of charge, as is and without warranty of any kind.
+Use it at your own risk.
+
 ## License
 
 Copyright (C) 2026 AutoComput. Licensed under the GNU General Public License v3.0 or later (`GPL-3.0-or-later`). See [`LICENSE`](LICENSE).
