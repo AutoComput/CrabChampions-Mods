@@ -25,23 +25,41 @@ Crab Champions\CrabChampions\Binaries\Win64\ue4ss\Mods\
 
 Each zip contains a single `<ModName>\` folder with an `enabled.txt`, so the mod turns itself on without editing `mods.txt`. See the mod's own README for details.
 
-## Building a release
+## Releasing
 
-From the repo root, with the mod folder name:
+Releases are automated. Tagging a mod builds and publishes it:
+
+```bash
+git tag -a cancel-locked-slots/v1.0.0 -m "CancelLockedSlots v1.0.0"
+git push origin cancel-locked-slots/v1.0.0
+```
+
+The [Release workflow](.github/workflows/release.yml) then builds the zip on a
+Windows runner, writes the release notes from that mod's `CHANGELOG.md`, and
+attaches `<ModName>-v<version>.zip` to a new GitHub Release.
+
+Tags are namespaced `<mod-slug>/vX.Y.Z`, since each mod ships on its own
+schedule. The slug is the mod folder name in kebab-case, so
+`cancel-locked-slots` resolves to the `CancelLockedSlots/` folder.
+
+The workflow refuses to publish if:
+
+- the tag is not in `<mod-slug>/vX.Y.Z` form
+- no mod folder matches the slug
+- the tag version disagrees with `modVersion` in that mod's `scripts\main.lua`
+- that mod's `CHANGELOG.md` has no matching `## <version>` entry
+
+### Building locally
+
+To produce the same zip without publishing:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\build-release.ps1 -Mod CancelLockedSlots
 ```
 
-The version is read from the mod's `scripts\main.lua`, and the build fails unless that mod's `CHANGELOG.md` has a matching `## <version>` entry. Output lands in `dist\<ModName>-v<version>.zip`. Personal `config.lua` files and `.log` files are never shipped.
-
-## Releases and tags
-
-Tags are namespaced per mod, since each ships on its own schedule:
-
-```
-cancel-locked-slots/v1.0.0
-```
+Output lands in `dist\<ModName>-v<version>.zip`. Personal `config.lua` files and
+`.log` files are never shipped. You can also run the workflow manually from the
+Actions tab to build a zip as a downloadable artifact without creating a release.
 
 ## Reporting a problem
 

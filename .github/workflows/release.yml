@@ -1,0 +1,134 @@
+name: Release
+
+# Tagging a mod publishes it. Tags are namespaced per mod, e.g.
+# cancel-locked-slots/v1.0.0 -> builds the CancelLockedSlots folder.
+# Manual runs build the same zip but publish nothing, as a dry run.
+on:
+  push:
+    tags:
+      - '*/v*'
+  workflow_dispatch:
+    inputs:
+      mod:
+        description: 'Mod folder to build (e.g. CancelLockedSlots)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    # Windows PowerShell 5.1, matching what build-release.ps1 targets locally.
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve mod and version
+        id: resolve
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          if ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch") {
+              $modFolder = "${{ inputs.mod }}"
+              $tagVersion = $null
+          } else {
+              # refs/tags/cancel-locked-slots/v1.0.0 -> slug "cancel-locked-slots", version "1.0.0"
+              $tag = $env:GITHUB_REF -replace '^refs/tags/', ''
+              if ($tag -notmatch '^(?<slug>.+)/v(?<version>[0-9]+\.[0-9]+\.[0-9]+)$') {
+                  Write-Host "::error::Tag '$tag' is not in the form <mod-slug>/vX.Y.Z"
+                  exit 1
+              }
+              $slug = $Matches.slug
+              $tagVersion = $Matches.version
+
+              # Match the kebab-case slug to its PascalCase folder by normalising both.
+              $normalised = $slug.Replace("-", "").ToLowerInvariant()
+              $modFolder = Get-ChildItem $env:GITHUB_WORKSPACE -Directory |
+                  Where-Object { Test-Path (Join-Path $_.FullName "scripts\main.lua") } |
+                  Where-Object { $_.Name.ToLowerInvariant() -eq $normalised } |
+                  Select-Object -First 1 -ExpandProperty Name
+
+              if (-not $modFolder) {
+                  Write-Host "::error::No mod folder matches tag slug '$slug'"
+                  exit 1
+              }
+          }
+
+          $mainLua = Join-Path $env:GITHUB_WORKSPACE "$modFolder\scripts\main.lua"
+          if (-not (Test-Path $mainLua)) {
+              Write-Host "::error::'$modFolder' has no scripts\main.lua"
+              exit 1
+          }
+
+          $match = Select-String -Path $mainLua -Pattern '^local modVersion = "([0-9]+\.[0-9]+\.[0-9]+)"'
+          if (-not $match) {
+              Write-Host "::error::modVersion not found in $modFolder\scripts\main.lua"
+              exit 1
+          }
+          $version = $match.Matches[0].Groups[1].Value
+
+          # A tag that disagrees with the source is always a mistake; fail loudly.
+          if ($tagVersion -and $tagVersion -ne $version) {
+              Write-Host "::error::Tag says v$tagVersion but $modFolder\scripts\main.lua says v$version"
+              exit 1
+          }
+
+          "mod=$modFolder"                    | Out-File $env:GITHUB_OUTPUT -Append
+          "version=$version"                  | Out-File $env:GITHUB_OUTPUT -Append
+          "zip=dist/$modFolder-v$version.zip" | Out-File $env:GITHUB_OUTPUT -Append
+          Write-Host "Releasing $modFolder v$version"
+
+      - name: Build release zip
+        shell: powershell
+        run: .\build-release.ps1 -Mod "${{ steps.resolve.outputs.mod }}"
+
+      - name: Extract changelog entry
+        id: notes
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $mod = "${{ steps.resolve.outputs.mod }}"
+          $version = "${{ steps.resolve.outputs.version }}"
+          $changelog = Get-Content "$mod\CHANGELOG.md" -Raw
+
+          # Take everything under "## <version>" up to the next "## " heading.
+          # Single-quoted: in a double-quoted string PowerShell would read $(.*?)
+          # as a subexpression and try to run it.
+          $pattern = '(?ms)^## ' + [regex]::Escape($version) + '\s*$(.*?)(?=^## |\z)'
+          $body = if ($changelog -match $pattern) { $Matches[1].Trim() } else { "" }
+
+          if (-not $body) {
+              Write-Host "::warning::No changelog body found for $version"
+              $body = "See CHANGELOG.md."
+          }
+
+          @"
+          $body
+
+          **Install:** extract into ``Crab Champions\CrabChampions\Binaries\Win64\ue4ss\Mods\``.
+          See the [$mod README](https://github.com/$env:GITHUB_REPOSITORY/blob/main/$mod/README.md).
+          "@ | Out-File release-notes.md -Encoding utf8
+
+          Get-Content release-notes.md
+
+      # Tag pushes publish. Manual runs only leave the zip as a downloadable artifact.
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$env:GITHUB_REF_NAME" `
+            "${{ steps.resolve.outputs.zip }}" `
+            --title "${{ steps.resolve.outputs.mod }} v${{ steps.resolve.outputs.version }}" `
+            --notes-file release-notes.md
+
+      - name: Upload zip (dry run)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.resolve.outputs.mod }}-v${{ steps.resolve.outputs.version }}
+          path: ${{ steps.resolve.outputs.zip }}
